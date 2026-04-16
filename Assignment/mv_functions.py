@@ -31,9 +31,7 @@ def normalize_points(points, target_dist):
 
 def reprojection_error(params, pts_3d, pts_2d, K, confidences):
     """
-    Cost function for Levenberg-Marquardt optimization.
-    Calculates the exact pixel distance between the mathematical projection 
-    and the noisy observed pixels.
+    Cost function for Levenberg-Marquardt optimization. Calculates the exact pixel distance between the mathematical projection and the observed pixels.
     """
     # Unpack parameters: First 3 are rotation vector (Rodrigues), last 3 are translation
     rvec = params[:3]
@@ -141,11 +139,7 @@ def estimate_pose(camera_observations, all_3d_points, K_matrix, noise_factor=0):
     beta = np.mean(S_r)
     t_est = t_raw / beta
         
-    # --------------------------------------------------------------------------
-    # Step 7: Non-Linear Refinement (Levenberg-Marquardt)
-    # DLT minimized algebraic error. Now we minimize the true Geometric Error
-    # measured in pixels, weighted by the observation confidence.
-    # --------------------------------------------------------------------------
+    # Non-Linear Refinement (Levenberg-Marquardt)
     # Convert R to a compact 3-element rotation vector for optimization
     initial_rvec = Rotation.from_matrix(R_est).as_rotvec()
     initial_params = np.hstack((initial_rvec, t_est))
@@ -157,21 +151,16 @@ def estimate_pose(camera_observations, all_3d_points, K_matrix, noise_factor=0):
         method='lm' # Levenberg-Marquardt
     )
     
-    # --------------------------------------------------------------------------
-    # Step 8: Formatting the Final Output
-    # --------------------------------------------------------------------------
     final_rvec = result.x[:3]
     final_tvec = result.x[3:]
     final_R = Rotation.from_rotvec(final_rvec).as_matrix()
     
     return final_R, final_tvec
 
-
-
 def triangulate_dlt(observations, P_matrices):
     """
     Constructs the linear system Ax = 0 from the projection rows.
-    Solves for x via SVD. Explores the null-space of matrix A.
+    Solves for x via SVD. 
     """
     A = []
     for obs in observations:
@@ -196,7 +185,6 @@ def triangulate_dlt(observations, P_matrices):
 
 def reprojection_cost(X_3d, observations, P_matrices):
     """
-    Cost function for non-linear optimization.
     Calculates 2D pixel error weighted by confidence.
     """
     errors = []
@@ -211,8 +199,7 @@ def reprojection_cost(X_3d, observations, P_matrices):
         u_proj = x_proj_homo[0] / x_proj_homo[2]
         v_proj = x_proj_homo[1] / x_proj_homo[2]
         
-        # Apply Confidence Weighting!
-        # Confidence acts as a scalar pulling the optimizer towards reliable data.
+        # Apply Confidence Weighting
         errors.append((u_proj - u) * conf)
         errors.append((v_proj - v) * conf)
         
